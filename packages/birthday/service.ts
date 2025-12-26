@@ -86,6 +86,20 @@ export const BirthdayService = {
 
   async markCallCompleted(id: string) {
     await query(`UPDATE birthdays SET call_completed = true WHERE id = $1`, [id]);
+  },
+
+  async getAllBirthdays() {
+    const sql = `
+      SELECT *
+      FROM birthdays
+      ORDER BY 
+        EXTRACT(MONTH FROM birthday_date),
+        EXTRACT(DAY FROM birthday_date),
+        name
+    `;
+
+    const res = await query(sql);
+    return res.rows;
   }
 
 };
@@ -114,9 +128,9 @@ function parseDate(input: string): string | null {
 }
 
 /**
- * Convert DB date "YYYY-MM-DD" → "DD-MM-YYYY"
+ * Convert DB date "YYYY-MM-DD" → "DD/MM/YYYY"
  */
-function formatDateDisplay(dbDate: string | Date): string {
+export function formatDateDisplay(dbDate: string | Date): string {
   let date = dbDate instanceof Date ? dbDate : new Date(dbDate);
 
   const yyyy = date.getFullYear();               // local year
