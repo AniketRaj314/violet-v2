@@ -1,15 +1,6 @@
 import { Telegram, log } from "@violet/core";
-import { BirthdayService, formatDateDisplay } from "./service";
+import { BirthdayService, formatDateDisplay, escapeHtml, formatBirthdayAddedMessage } from "./service";
 import TelegramBot, { Message } from "node-telegram-bot-api";
-
-function escapeHtml(unsafe: string) {
-  return unsafe
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 export function registerCommands(bot: any) {
   bot.onText(/\/newbday (.+)/, async (msg: Message, match: RegExpMatchArray | null) => {
@@ -27,13 +18,12 @@ export function registerCommands(bot: any) {
 
       const result = await BirthdayService.createBirthday(parsed);
 
-      const safeName = escapeHtml(result.name);
-      const safeDate = escapeHtml(result.date);
+      const message = formatBirthdayAddedMessage(result.name, result.date);
 
       await Telegram.replyToMessage(
         chatId,
         replyId,
-        `🎉 Birthday added for <b>${safeName}</b> on <b>${safeDate}</b>`,
+        message,
         { parse_mode: "HTML" }
       );
       log.info("Birthday created:", result);
@@ -58,36 +48,63 @@ export function registerCommands(bot: any) {
     try {
       const birthdays = await BirthdayService.getAllBirthdays();
 
+      let responseMessageId: number;
+
       if (birthdays.length === 0) {
-        await Telegram.replyToMessage(
+        const response = await Telegram.replyToMessage(
           chatId,
           replyId,
           "📅 No birthdays found in the database.",
           { parse_mode: "HTML" }
         );
-        return;
+        responseMessageId = response.message_id;
+      } else {
+        // Format as a table
+        const table = formatBirthdaysTable(birthdays);
+
+        const response = await Telegram.replyToMessage(
+          chatId,
+          replyId,
+          table,
+          { parse_mode: "HTML" }
+        );
+        responseMessageId = response.message_id;
+        log.info(`Listed ${birthdays.length} birthdays`);
       }
 
-      // Format as a table
-      const table = formatBirthdaysTable(birthdays);
-
-      await Telegram.replyToMessage(
-        chatId,
-        replyId,
-        table,
-        { parse_mode: "HTML" }
-      );
-      log.info(`Listed ${birthdays.length} birthdays`);
+      // Schedule deletion of both messages after 30 seconds
+      setTimeout(async () => {
+        try {
+          await Telegram.deleteMessage(chatId, replyId);
+          await Telegram.deleteMessage(chatId, responseMessageId);
+        } catch (err) {
+          // Silently fail if messages are already deleted or can't be deleted
+          // (This is expected if messages were manually deleted)
+        }
+      }, 30000);
 
     } catch (err: any) {
       const safeErr = escapeHtml(String(err?.message ?? "Unknown error"));
 
-      await Telegram.replyToMessage(
+      const response = await Telegram.replyToMessage(
         chatId,
         replyId,
         `🚨 Error: <code>${safeErr}</code>`,
         { parse_mode: "HTML" }
       );
+      const responseMessageId = response.message_id;
+
+      // Schedule deletion of both messages after 30 seconds even on error
+      setTimeout(async () => {
+        try {
+          await Telegram.deleteMessage(chatId, replyId);
+          await Telegram.deleteMessage(chatId, responseMessageId);
+        } catch (err) {
+          // Silently fail if messages are already deleted or can't be deleted
+          // (This is expected if messages were manually deleted)
+        }
+      }, 30000);
+
       log.error("Failed to list birthdays:", err);
     }
   });

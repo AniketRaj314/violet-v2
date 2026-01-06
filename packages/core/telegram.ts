@@ -45,9 +45,22 @@ export async function replyToMessage(chatId: number | string, replyToMessageId: 
   return sendMessage(chatId, text, { ...(options || {}), reply_to_message_id: replyToMessageId });
 }
 
+/**
+ * Delete a message from a chat
+ */
+export async function deleteMessage(chatId: number | string, messageId: number) {
+  try {
+    return bot.deleteMessage(chatId, messageId);
+  } catch (err) {
+    log.error("Telegram deleteMessage error:", err);
+    throw err;
+  }
+}
+
 export const Telegram = {
   bot,
   sendMessage,
   sendToTopic,
-  replyToMessage
+  replyToMessage,
+  deleteMessage
 };

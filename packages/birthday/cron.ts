@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { log, Telegram, env } from "@violet/core";
-import { BirthdayService } from "./service";
+import { BirthdayService, formatBirthdayNotificationMessage } from "./service";
 import { Call } from "@violet/core";
 
 export function registerBirthdayCron() {
@@ -35,12 +35,13 @@ export function registerBirthdayCron() {
         }
 
         // Build the birthday message
-        const message = buildBirthdayMessage(bday);
+        const message = formatBirthdayNotificationMessage(bday);
 
-        // Send Telegram announcement into the birthday topic
+        // Send Telegram announcement into the priority topic
         await Telegram.sendToTopic(
-          Number(env.BIRTHDAY_TOPIC_ID),
-          message
+          Number(env.PRIORITY_TOPIC_ID),
+          message,
+          { parse_mode: "HTML" }
         );
 
         await BirthdayService.markTelegramSent(bday.id);
@@ -62,17 +63,4 @@ export function registerBirthdayCron() {
       log.error("Birthday cron failed:", err);
     }
   });
-}
-
-/**
- * Build a clean birthday announcement message.
- */
-function buildBirthdayMessage(bday: any) {
-  return `
-🎂 <b>${bday.name}</b>
-Today is their birthday!
-
-${bday.notes ? `📝 ${bday.notes}\n` : ""}
-${bday.requires_call ? `📞 Phone call required.` : ""}
-  `;
 }

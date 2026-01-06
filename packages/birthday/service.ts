@@ -140,4 +140,53 @@ export function formatDateDisplay(dbDate: string | Date): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+/**
+ * Escape HTML special characters for Telegram HTML parse mode
+ */
+export function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/**
+ * Format message when a birthday is successfully added
+ */
+export function formatBirthdayAddedMessage(name: string, date: string): string {
+  const safeName = escapeHtml(name);
+  const safeDate = escapeHtml(date);
+  return `🎉 Birthday added for <b>${safeName}</b> on <b>${safeDate}</b>`;
+}
+
+/**
+ * Format birthday notification message for daily reminders
+ */
+export function formatBirthdayNotificationMessage(bday: {
+  name: string;
+  notes?: string | null;
+  requires_call?: boolean;
+}): string {
+  const safeName = escapeHtml(bday.name);
+  const safeNotes = bday.notes ? escapeHtml(bday.notes) : null;
+
+  const parts = [
+    `🎂 <b>${safeName}</b>`,
+    "Today is their birthday!",
+    ""
+  ];
+
+  if (safeNotes) {
+    parts.push(`📝 ${safeNotes}`);
+  }
+
+  if (bday.requires_call) {
+    parts.push("📞 Phone call required.");
+  }
+
+  return parts.join("\n");
+}
+
 

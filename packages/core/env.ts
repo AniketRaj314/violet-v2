@@ -7,6 +7,7 @@ const schema = z.object({
   TELEGRAM_TOKEN: z.string().min(1, "TELEGRAM_TOKEN missing"),
   GROUP_CHAT_ID: z.string().min(1, "GROUP_CHAT_ID missing"),
   BIRTHDAY_TOPIC_ID: z.string().min(1, "BIRTHDAY_TOPIC_ID missing"),
+  PRIORITY_TOPIC_ID: z.string().min(1, "PRIORITY_TOPIC_ID missing"),
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL missing"),
 
